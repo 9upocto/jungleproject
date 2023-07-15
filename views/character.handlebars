@@ -1,0 +1,30 @@
+<h1>캐릭터 설정 화면</h1>
+
+<form id="character_form" method="POST">
+    <input type="text" name="name" id="name" size="30" placeholder="사용자 명을 입력하세요." />
+    
+    <label for="room_no">방 번호</label>
+    <select name="room_no" id="room_no">   
+        <option value="1">Room 1</option>
+        <option value="2">Room 2</option>
+        <option value="3">Room 3</option>
+    </select>
+
+    <button type="submit">입력</button>
+</form>
+
+<script>
+    // Handle form submission
+    document.getElementById("character_form").addEventListener("submit", function(event) {
+        event.preventDefault(); // Prevent default form submission
+        
+        const room_no = document.getElementById("room_no").value;  // Get the selected room number
+        const name = document.getElementById("name").value;
+        
+        // Update the form action with the selected room number
+        this.action = `/room/${room_no}/start_game`;
+        
+        // Submit the form
+        this.submit();
+    });
+</script>
