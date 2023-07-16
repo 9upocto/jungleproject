@@ -1,3 +1,14 @@
 <h1>{{name}}님, 환영합니다.</h1>
 
-<p>캐릭터의 현재 나이: <span id="age">{{age}}</span>세 </p>
+<p>캐릭터의 현재 나이: <span id="age">{{age}}</span>세</p>
+<p>캐릭터의 현재 잔액: <span id="money">{{money}}</span>원</p>
+
+<script>
+    const socket = new WebSocket(`ws://${window.location.host}`);
+
+    socket.addEventListener('message', (event) => {
+        const data = JSON.parse(event.data);
+        const the_age = document.getElementById('age');
+        the_age.textContent = data.age;
+    });
+</script>
