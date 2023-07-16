@@ -1,8 +1,12 @@
-const express = require("express");
-const handlebars = require("express-handlebars");
-const app = express();
+const express = require('express');
+const http = require('http');
+const WebSocket = require('ws');
+const handlebars = require('express-handlebars');
+const { Client } = require('pg');
 
-const { Client } = require("pg");
+const app = express();
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
 
 const dbClient = new Client({
     user: "jiwon_ha", 
@@ -13,37 +17,47 @@ const dbClient = new Client({
 });
 dbClient.connect();
 
-// req.body와 POST 요청을 해석하기 위한 설정
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
 app.engine("handlebars", handlebars.engine());
 app.set("view engine", "handlebars");
 app.set("views", __dirname + "/views");
 
+// req.body와 POST 요청을 해석하기 위한 설정
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 
 app.get("/", (request, response) => {  // 메인 화면
-    try {
-        response.render("home");
-    }
-    catch (error) {
-        console.error(error);
-        console.log("게임 접속에 실패했습니다.");
-    }
+    response.render("home");
 });
 
-app.get("/character", async (request, response) => {  // 캐릭터 설정
+app.get("/character", async (request, response) => {
+    response.render("character");
+});
+
+app.post("/room/:room_no/start_game", async (request, response) => {  // 캐릭터 설정
     try {
         const { room_no, name } = request.body;
-        const insert_char_info = `INSERT INTO characters (room_no, name, age, money, debt) VALUES ($1, $2, 20, 4500000, 50000)`;
+        const insert_char_info = `INSERT INTO characters (room_no, name, age, money, debt) VALUES ($1, $2, 20, 4500000, 50000);`;
+        
         await dbClient.query(insert_char_info, [room_no, name]);
 
-        // response.status(201).json({ message: "Character created successfully" });
-        response.render("character");
+        const select_age_query = `SELECT age FROM characters WHERE room_no = $1 AND name = $2;`;
+        const select_money_query = `SELECT money FROM characters WHERE room_no = $1 AND name = $2;`;
+        
+        const age_rows = await dbClient.query(select_age_query, [room_no, name]);
+        const money_rows = await dbClient.query(select_money_query, [room_no, name]);
+        
+        const char_age = age_rows.rows[0].age;  // Retrieve the age value
+        const char_money = money_rows.rows[0].money;  // Retrieve the money value
+
+        getOlder(parseInt(char_age), room_no);  // 각 방마다 캐릭터들이 나이를 먹는다.
+        sendAgeUpdate(room_no, char_age);
+        
+        response.render("play", { name: name, age: char_age, money: char_money });
     }
     catch (error) {
         console.error(error);
-        response.status(500).json({ error: "Internal server error" });
+        response.status(500).json({ error: "Internal server error starting game" });
     }
 });
 
@@ -57,18 +71,28 @@ function getOlder(new_age, room_no) {  // 나이 먹는 함수
         new_age += 1;
         minutes_passed += 2;
 
-        if (minutes_passed < 90 && new_age < 65) {
+        if (minutes_passed <= 90 && new_age <= 65) {
             const updateQuery = `UPDATE characters SET age = $1 WHERE room_no = $2`;
-
             dbClient.query(updateQuery, [new_age, room_no]);
-            console.log(`나이가 1살 늘어났습니다: ${new_age}세`);
+
+            sendAgeUpdate(room_no, new_age);
         }
-        else {  // minutes_passed >= 90 && new_age >= 65
+        else {  // minutes_passed > 90 && new_age > 65
             clearInterval(updateInterval);
-            console.log('게임 시간이 모두 초과되었습니다. 65세입니다.');
+            console.log('게임 시간이 모두 초과되었습니다. 65세입니다.');  // 새로고침을 하면 같은 데이터가 테이블에 추가되는 오류 존재
         }
-    }, 2 * 60 * 1000);  // 2분 마다 업데이트
+    }, 2 * 60 * 1000);
 }
+function sendAgeUpdate(room_no, age) {
+    const data = JSON.stringify({ room_no, age });
+
+    wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(data);
+        }
+    });
+}
+
 function loseMoney(new_money, debt, room_no) {
     let minutes_passed = 0;
 
@@ -84,15 +108,6 @@ function loseMoney(new_money, debt, room_no) {
         }
     })
 }
-app.post("/room/:room_no/start_game", (request, response) => {  // 게임 실행
-    // const { room_no, name, age } = request.params;
-    const { room_no } = request.params;
-    const { name, age } = request.body;
-    getOlder(parseInt(age), room_no);  // 각 방마다 캐릭터들이 나이를 먹는다.
-
-    // response.status(200).json({ message: "Game started." });
-    response.render("play", { name: name, age: age });
-});
 
 
 // 건물 및 장소
@@ -150,7 +165,7 @@ app.get("/room/:room_no/ranking", async (request, response) => {
     }
     catch (err) {
         console.error(err);
-        response.status(500).json({ error: "Internal server error" });
+        response.status(500).json({ error: "Internal server error ranking" });
     }
 })
 
@@ -158,7 +173,15 @@ app.delete("/clear", (request, response) => {  // 게임이 끝나면 모든 캐
     const clear_table = `TRUNCATE character`;
 })
 
+wss.on('connection', (ws) => {
+    ws.on('message', (message) => {
+        console.log(`Received message: ${message}`);
+    });
+    ws.on('close', () => {
+        console.log('Client disconnected');
+    });
+});
 
-app.listen(3000, () => {
+server.listen(3000, () => {
     console.log("게임 시작");
 });
