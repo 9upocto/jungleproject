@@ -1,0 +1,23 @@
+{
+	"compilerOptions": {
+		"sourceMap": true,
+		"strict": true,
+		"noImplicitReturns": true,
+		"noImplicitAny": true,
+		"target": "es6",
+		"moduleResolution": "node",
+		"resolveJsonModule": true,
+		"esModuleInterop": true,
+		"checkJs": true,
+		"allowJs": true,
+		"baseUrl": ".",
+	},
+	
+	"include": ["src", "src/App.ts"],
+	  
+	"exclude": [
+		"node_modules",
+		"./dist/"
+	],
+	// "references": [{ "path": "./tsconfig.node.json" }],
+}

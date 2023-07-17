@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<link rel="stylesheet" href="/index.css">
+	<title>Choconomy</title>
+	<script>
+		//모달 열기-특정 좌표 도착시
+		$(document).on('click', '#add-btn', function (e) {
+			$('#modal').addClass('show');
+		});
+		
+		//모달 닫기
+		$(document).on('click', '#close_btn', function (e) {
+			$('#modal').removeClass('show');
+		});
+	</script>
+</head>
+
+<body>
+	<div id="user">
+		<p> {nickname} 님
+			<img class="mail" onclick="" src="/public/assets/letter.png">
+		</p>
+	</div>
+
+	<div id="app"></div>
+	<script type="module" src="src/PhaserGame.ts"></script>
+
+	<div class="info">
+		<div class="assets">
+			<p>str: {str} / int:{int}</p>
+			<p class="deposit">통장잔고: {deposit}원</p>
+			<p class="debt">대출: -{debt}원</p>
+		</div>
+
+		<img class="fullAssets" onclick="" src="/public/assets/dollar.png">
+
+		<div class="chat">
+			<p>채팅 입력</p>
+		</div>
+	</div>
+
+	<div id = "modal" class="modal">
+        <div class="modalContent">
+            <h3>공개 채용</h3>
+            <p>회사명: {}</p>
+            <p>급여: {}</p>
+            <p>조건: {}</p>
+            <button id="close_btn" class = "modal_close">닫기</button>
+            <button id="save_btn" class = "modal_save">지원하기</button>
+        </div>
+    </div>
+
+</body>
+
+</html>

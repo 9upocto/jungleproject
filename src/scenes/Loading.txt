@@ -1,0 +1,37 @@
+import Phaser from 'phaser'
+
+export default class Loading extends Phaser.Scene {
+    private cloud: Phaser.Physics.Arcade.Group
+    private cloudKey : string
+    private backdropKey : string
+
+    constructor(){
+        super('Loading')
+    }
+
+    create(){
+        const sceneHeight = this.cameras.main.height
+        const sceneWidth = this.cameras.main.width
+        this.backdropKey = 'backdrop_day'
+        this.cloudKey = 'cloud_day'
+        this.cameras.main.setBackgroundColor('#c6eefc')
+
+    // Add 12 clouds at random positions and with random speeds
+        const frames = this.textures.get(this.cloudKey).getFrameNames()
+        this.cloud = this.physics.add.group()
+        for (let i = 0; i < 12; i++) {
+            const x = Phaser.Math.RND.between(-sceneWidth * 0.5, sceneWidth * 1.5)
+            const y = Phaser.Math.RND.between(sceneHeight * 0.2, sceneHeight * 0.8)
+            const velocity = Phaser.Math.RND.between(15, 30)
+
+            this.cloud
+            .get(x, y, this.cloudKey, frames[i % 6])
+            .setScale(3)
+            .setVelocity(velocity, 0)
+        }}
+    
+    
+    update(t: number, dt: number) {
+        this.physics.world.wrap(this.cloud, 500)
+    }
+}
